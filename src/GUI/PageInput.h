@@ -204,6 +204,9 @@ private:
 	QLabel *m_label_pulseaudio_source;
 	QComboBox *m_combobox_pulseaudio_source;
 	QPushButton *m_pushbutton_pulseaudio_refresh;
+	QCheckBox *m_checkbox_pulseaudio_dual_source;
+	QLabel *m_label_pulseaudio_source_left, *m_label_pulseaudio_source_right;
+	QComboBox *m_combobox_pulseaudio_source_left, *m_combobox_pulseaudio_source_right;
 #endif
 #if SSR_USE_JACK
 	QCheckBox *m_checkbox_jack_connect_system_capture, *m_checkbox_jack_connect_system_playback;
@@ -229,6 +232,9 @@ public:
 #endif
 #if SSR_USE_PULSEAUDIO
 	QString GetPulseAudioSourceName();
+	bool GetDualSourceEnabled();
+	QString GetPulseAudioSourceLeft();
+	QString GetPulseAudioSourceRight();
 #endif
 
 private:
@@ -318,6 +324,8 @@ public:
 #endif
 #if SSR_USE_PULSEAUDIO
 	inline unsigned int GetPulseAudioSource() { return clamp(m_combobox_pulseaudio_source->currentIndex(), 0, (int) m_pulseaudio_sources.size() - 1); }
+	inline unsigned int GetPulseAudioSourceLeftIndex() { return clamp(m_combobox_pulseaudio_source_left->currentIndex(), 0, (int) m_pulseaudio_sources.size() - 1); }
+	inline unsigned int GetPulseAudioSourceRightIndex() { return clamp(m_combobox_pulseaudio_source_right->currentIndex(), 0, (int) m_pulseaudio_sources.size() - 1); }
 #endif
 #if SSR_USE_JACK
 	inline bool GetJackConnectSystemCapture() { return m_checkbox_jack_connect_system_capture->isChecked(); }
@@ -363,6 +371,9 @@ public:
 #endif
 #if SSR_USE_PULSEAUDIO
 	inline void SetPulseAudioSource(unsigned int source) { m_combobox_pulseaudio_source->setCurrentIndex(clamp(source, 0u, (unsigned int) m_pulseaudio_sources.size() - 1)); }
+	inline void SetDualSourceEnabled(bool enable) { m_checkbox_pulseaudio_dual_source->setChecked(enable); }
+	inline void SetPulseAudioSourceLeft(unsigned int source) { m_combobox_pulseaudio_source_left->setCurrentIndex(clamp(source, 0u, (unsigned int) m_pulseaudio_sources.size() - 1)); }
+	inline void SetPulseAudioSourceRight(unsigned int source) { m_combobox_pulseaudio_source_right->setCurrentIndex(clamp(source, 0u, (unsigned int) m_pulseaudio_sources.size() - 1)); }
 #endif
 #if SSR_USE_JACK
 	inline void SetJackConnectSystemCapture(bool connect) { m_checkbox_jack_connect_system_capture->setChecked(connect); }

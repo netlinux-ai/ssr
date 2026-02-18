@@ -58,7 +58,7 @@ private:
 	std::atomic<bool> m_should_stop, m_error_occurred;
 
 public:
-	PulseAudioInput(const QString& source_name, unsigned int sample_rate);
+	PulseAudioInput(const QString& source_name, unsigned int sample_rate, unsigned int channels = 2);
 	~PulseAudioInput();
 
 	// Returns whether an error has occurred in the input thread.

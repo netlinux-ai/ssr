@@ -49,6 +49,7 @@ along with SimpleScreenRecorder.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 #if SSR_USE_PULSEAUDIO
 #include "PulseAudioInput.h"
+#include "DualSourceMixer.h"
 #endif
 #if SSR_USE_JACK
 #include "JACKInput.h"
@@ -609,6 +610,9 @@ void PageRecord::StartPage() {
 #endif
 #if SSR_USE_PULSEAUDIO
 	m_pulseaudio_source = page_input->GetPulseAudioSourceName();
+	m_dual_source_enabled = page_input->GetDualSourceEnabled();
+	m_pulseaudio_source_left = page_input->GetPulseAudioSourceLeft();
+	m_pulseaudio_source_right = page_input->GetPulseAudioSourceRight();
 #endif
 #if SSR_USE_JACK
 	bool jack_connect_system_capture = page_input->GetJackConnectSystemCapture();
@@ -956,6 +960,7 @@ void PageRecord::StartInput() {
 #endif
 #if SSR_USE_PULSEAUDIO
 	assert(m_pulseaudio_input == NULL);
+	assert(m_dual_source_mixer == NULL);
 #endif
 
 	try {
@@ -997,8 +1002,13 @@ void PageRecord::StartInput() {
 				m_alsa_input.reset(new ALSAInput(m_alsa_source, m_audio_sample_rate));
 #endif
 #if SSR_USE_PULSEAUDIO
-			if(m_audio_backend == PageInput::AUDIO_BACKEND_PULSEAUDIO)
-				m_pulseaudio_input.reset(new PulseAudioInput(m_pulseaudio_source, m_audio_sample_rate));
+			if(m_audio_backend == PageInput::AUDIO_BACKEND_PULSEAUDIO) {
+				if(m_dual_source_enabled) {
+					m_dual_source_mixer.reset(new DualSourceMixer(m_pulseaudio_source_left, m_pulseaudio_source_right, m_audio_sample_rate));
+				} else {
+					m_pulseaudio_input.reset(new PulseAudioInput(m_pulseaudio_source, m_audio_sample_rate));
+				}
+			}
 #endif
 			// JACK was started when the page was started
 		}
@@ -1025,6 +1035,7 @@ void PageRecord::StartInput() {
 #endif
 #if SSR_USE_PULSEAUDIO
 		m_pulseaudio_input.reset();
+		m_dual_source_mixer.reset();
 #endif
 		// JACK shouldn't stop until the page stops
 		return;
@@ -1056,6 +1067,7 @@ void PageRecord::StopInput() {
 #endif
 #if SSR_USE_PULSEAUDIO
 	m_pulseaudio_input.reset();
+	m_dual_source_mixer.reset();
 #endif
 	// JACK shouldn't stop until the page stops
 
@@ -1127,8 +1139,12 @@ void PageRecord::UpdateInput() {
 			audio_source = m_alsa_input.get();
 #endif
 #if SSR_USE_PULSEAUDIO
-		if(m_audio_backend == PageInput::AUDIO_BACKEND_PULSEAUDIO)
-			audio_source = m_pulseaudio_input.get();
+		if(m_audio_backend == PageInput::AUDIO_BACKEND_PULSEAUDIO) {
+			if(m_dual_source_enabled && m_dual_source_mixer != NULL)
+				audio_source = m_dual_source_mixer.get();
+			else
+				audio_source = m_pulseaudio_input.get();
+		}
 #endif
 #if SSR_USE_JACK
 		if(m_audio_backend == PageInput::AUDIO_BACKEND_JACK)

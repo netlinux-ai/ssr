@@ -188,11 +188,11 @@ static void PulseAudioCancelOperation(pa_mainloop* mainloop, pa_operation** oper
 
 }
 
-PulseAudioInput::PulseAudioInput(const QString& source_name, unsigned int sample_rate) {
+PulseAudioInput::PulseAudioInput(const QString& source_name, unsigned int sample_rate, unsigned int channels) {
 
 	m_source_name = source_name;
 	m_sample_rate = sample_rate;
-	m_channels = 2;
+	m_channels = channels;
 
 	m_pa_mainloop = NULL;
 	m_pa_context = NULL;

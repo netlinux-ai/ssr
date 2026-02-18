@@ -50,6 +50,7 @@ class ALSAInput;
 #endif
 #if SSR_USE_PULSEAUDIO
 class PulseAudioInput;
+class DualSourceMixer;
 #endif
 #if SSR_USE_JACK
 class JACKInput;
@@ -99,6 +100,8 @@ private:
 #endif
 #if SSR_USE_PULSEAUDIO
 	QString m_pulseaudio_source;
+	bool m_dual_source_enabled;
+	QString m_pulseaudio_source_left, m_pulseaudio_source_right;
 #endif
 
 	OutputSettings m_output_settings;
@@ -125,6 +128,7 @@ private:
 #endif
 #if SSR_USE_PULSEAUDIO
 	std::unique_ptr<PulseAudioInput> m_pulseaudio_input;
+	std::unique_ptr<DualSourceMixer> m_dual_source_mixer;
 #endif
 #if SSR_USE_JACK
 	std::unique_ptr<JACKInput> m_jack_input;

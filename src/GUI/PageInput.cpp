@@ -554,6 +554,17 @@ PageInput::PageInput(MainWindow* main_window)
 														"A 'monitor' is a source that records the audio played by other applications.", "Don't translate 'monitor' unless PulseAudio does this as well"));
 			m_pushbutton_pulseaudio_refresh = new QPushButton(tr("Refresh"), groupbox_audio);
 			m_pushbutton_pulseaudio_refresh->setToolTip(tr("Refreshes the list of PulseAudio sources."));
+			m_checkbox_pulseaudio_dual_source = new QCheckBox(tr("Dual source (L/R split)"), groupbox_audio);
+			m_checkbox_pulseaudio_dual_source->setToolTip(tr("When checked, two separate PulseAudio sources are captured as mono and placed on the left and right channels.\n"
+															 "This is useful for recording video calls with microphone on one channel and remote audio on the other."));
+			m_label_pulseaudio_source_left = new QLabel(tr("Left channel (mic):"), groupbox_audio);
+			m_combobox_pulseaudio_source_left = new QComboBox(groupbox_audio);
+			m_combobox_pulseaudio_source_left->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+			m_combobox_pulseaudio_source_left->setToolTip(tr("The PulseAudio source for the left channel (typically your microphone)."));
+			m_label_pulseaudio_source_right = new QLabel(tr("Right channel (app audio):"), groupbox_audio);
+			m_combobox_pulseaudio_source_right = new QComboBox(groupbox_audio);
+			m_combobox_pulseaudio_source_right->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+			m_combobox_pulseaudio_source_right->setToolTip(tr("The PulseAudio source for the right channel (typically a browser or application monitor)."));
 #endif
 #if SSR_USE_JACK
 			m_checkbox_jack_connect_system_capture = new QCheckBox(tr("Record system microphone"));
@@ -569,6 +580,7 @@ PageInput::PageInput(MainWindow* main_window)
 #endif
 #if SSR_USE_PULSEAUDIO
 			connect(m_pushbutton_pulseaudio_refresh, SIGNAL(clicked()), this, SLOT(OnUpdatePulseAudioSources()));
+			connect(m_checkbox_pulseaudio_dual_source, SIGNAL(clicked()), this, SLOT(OnUpdateAudioFields()));
 #endif
 
 			QVBoxLayout *layout = new QVBoxLayout(groupbox_audio);
@@ -587,6 +599,11 @@ PageInput::PageInput(MainWindow* main_window)
 				layout2->addWidget(m_label_pulseaudio_source, 2, 0);
 				layout2->addWidget(m_combobox_pulseaudio_source, 2, 1);
 				layout2->addWidget(m_pushbutton_pulseaudio_refresh, 2, 2);
+				layout2->addWidget(m_checkbox_pulseaudio_dual_source, 3, 0, 1, 3);
+				layout2->addWidget(m_label_pulseaudio_source_left, 4, 0);
+				layout2->addWidget(m_combobox_pulseaudio_source_left, 4, 1, 1, 2);
+				layout2->addWidget(m_label_pulseaudio_source_right, 5, 0);
+				layout2->addWidget(m_combobox_pulseaudio_source_right, 5, 1, 1, 2);
 #endif
 			}
 #if SSR_USE_JACK
@@ -732,6 +749,9 @@ void PageInput::LoadProfileSettings(QSettings* settings) {
 #endif
 #if SSR_USE_PULSEAUDIO
 	SetPulseAudioSource(FindPulseAudioSource(settings->value("input/audio_pulseaudio_source", QString()).toString()));
+	SetDualSourceEnabled(settings->value("input/audio_dual_source_enabled", false).toBool());
+	SetPulseAudioSourceLeft(FindPulseAudioSource(settings->value("input/audio_pulseaudio_source_left", QString()).toString()));
+	SetPulseAudioSourceRight(FindPulseAudioSource(settings->value("input/audio_pulseaudio_source_right", QString()).toString()));
 #endif
 #if SSR_USE_JACK
 	SetJackConnectSystemCapture(settings->value("input/audio_jack_connect_system_capture", true).toBool());
@@ -785,6 +805,9 @@ void PageInput::SaveProfileSettings(QSettings* settings) {
 #endif
 #if SSR_USE_PULSEAUDIO
 	settings->setValue("input/audio_pulseaudio_source", GetPulseAudioSourceName());
+	settings->setValue("input/audio_dual_source_enabled", GetDualSourceEnabled());
+	settings->setValue("input/audio_pulseaudio_source_left", GetPulseAudioSourceLeft());
+	settings->setValue("input/audio_pulseaudio_source_right", GetPulseAudioSourceRight());
 #endif
 #if SSR_USE_JACK
 	settings->setValue("input/audio_jack_connect_system_capture", GetJackConnectSystemCapture());
@@ -815,6 +838,15 @@ QString PageInput::GetALSASourceName() {
 #if SSR_USE_PULSEAUDIO
 QString PageInput::GetPulseAudioSourceName() {
 	return QString::fromStdString(m_pulseaudio_sources[GetPulseAudioSource()].m_name);
+}
+bool PageInput::GetDualSourceEnabled() {
+	return m_checkbox_pulseaudio_dual_source->isChecked();
+}
+QString PageInput::GetPulseAudioSourceLeft() {
+	return QString::fromStdString(m_pulseaudio_sources[GetPulseAudioSourceLeftIndex()].m_name);
+}
+QString PageInput::GetPulseAudioSourceRight() {
+	return QString::fromStdString(m_pulseaudio_sources[GetPulseAudioSourceRightIndex()].m_name);
 }
 #endif
 
@@ -1097,9 +1129,14 @@ void PageInput::LoadPulseAudioSources() {
 		m_pulseaudio_available = true;
 	}
 	m_combobox_pulseaudio_source->clear();
+	m_combobox_pulseaudio_source_left->clear();
+	m_combobox_pulseaudio_source_right->clear();
 	for(unsigned int i = 0; i < m_pulseaudio_sources.size(); ++i) {
 		QString elided = m_combobox_pulseaudio_source->fontMetrics().elidedText(QString::fromStdString(m_pulseaudio_sources[i].m_description), Qt::ElideMiddle, 400);
-		m_combobox_pulseaudio_source->addItem("\u200e" + elided + "\u200e");
+		QString item = "\u200e" + elided + "\u200e";
+		m_combobox_pulseaudio_source->addItem(item);
+		m_combobox_pulseaudio_source_left->addItem(item);
+		m_combobox_pulseaudio_source_right->addItem(item);
 	}
 }
 #endif
@@ -1228,12 +1265,19 @@ void PageInput::OnUpdateAudioFields() {
 		m_checkbox_jack_connect_system_capture, m_checkbox_jack_connect_system_playback,
 #endif
 	}, enabled);
+#if SSR_USE_PULSEAUDIO
+	bool pa_selected = (backend == AUDIO_BACKEND_PULSEAUDIO);
+	bool dual_source = pa_selected && m_checkbox_pulseaudio_dual_source->isChecked();
+#endif
 	MultiGroupVisible({
 #if SSR_USE_ALSA
 		{{m_label_alsa_source, m_combobox_alsa_source, m_pushbutton_alsa_refresh}, (backend == AUDIO_BACKEND_ALSA)},
 #endif
 #if SSR_USE_PULSEAUDIO
-		{{m_label_pulseaudio_source, m_combobox_pulseaudio_source, m_pushbutton_pulseaudio_refresh}, (backend == AUDIO_BACKEND_PULSEAUDIO)},
+		{{m_label_pulseaudio_source, m_combobox_pulseaudio_source}, (pa_selected && !dual_source)},
+		{{m_pushbutton_pulseaudio_refresh, m_checkbox_pulseaudio_dual_source}, pa_selected},
+		{{m_label_pulseaudio_source_left, m_combobox_pulseaudio_source_left,
+		  m_label_pulseaudio_source_right, m_combobox_pulseaudio_source_right}, dual_source},
 #endif
 #if SSR_USE_JACK
 		{{m_checkbox_jack_connect_system_capture, m_checkbox_jack_connect_system_playback}, (backend == AUDIO_BACKEND_JACK)},
@@ -1274,8 +1318,12 @@ void PageInput::OnUpdateALSASources() {
 #if SSR_USE_PULSEAUDIO
 void PageInput::OnUpdatePulseAudioSources() {
 	QString selected_source = GetPulseAudioSourceName();
+	QString selected_left = GetPulseAudioSourceLeft();
+	QString selected_right = GetPulseAudioSourceRight();
 	LoadPulseAudioSources();
 	SetPulseAudioSource(FindPulseAudioSource(selected_source));
+	SetPulseAudioSourceLeft(FindPulseAudioSource(selected_left));
+	SetPulseAudioSourceRight(FindPulseAudioSource(selected_right));
 }
 #endif
 

@@ -43,6 +43,8 @@ set(sources
 	AV/Input/JACKInput.h
 	AV/Input/PipeWireInput.cpp
 	AV/Input/PipeWireInput.h
+	AV/Input/DualSourceMixer.cpp
+	AV/Input/DualSourceMixer.h
 	AV/Input/PulseAudioInput.cpp
 	AV/Input/PulseAudioInput.h
 	AV/Input/SSRVideoStream.h
