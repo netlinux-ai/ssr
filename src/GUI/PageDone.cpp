@@ -32,6 +32,19 @@ PageDone::PageDone(MainWindow* main_window)
 									   "make the file smaller (the default settings are optimized for quality and speed, not file size)."), this);
 	label_done->setWordWrap(true);
 
+	QLabel *label_recordings = new QLabel(tr("Recordings:"), this);
+
+	m_listwidget_recordings = new QListWidget(this);
+	m_listwidget_recordings->setSelectionMode(QAbstractItemView::SingleSelection);
+	connect(m_listwidget_recordings, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(OnRecordingDoubleClicked(QListWidgetItem*)));
+
+	m_button_play = new QPushButton(QIcon::fromTheme("media-playback-start"), tr("Play"), this);
+	m_button_play->setEnabled(false);
+	connect(m_button_play, SIGNAL(clicked()), this, SLOT(OnPlayRecording()));
+	connect(m_listwidget_recordings, &QListWidget::currentRowChanged, this, [this](int row) {
+		m_button_play->setEnabled(row >= 0);
+	});
+
 	QPushButton *button_open_folder = new QPushButton(g_icon_folder_open, tr("Open folder"), this);
 	connect(button_open_folder, SIGNAL(clicked()), this, SLOT(OnOpenFolder()));
 
@@ -43,13 +56,15 @@ PageDone::PageDone(MainWindow* main_window)
 
 	QVBoxLayout *layout = new QVBoxLayout(this);
 	layout->addWidget(label_done);
+	layout->addWidget(label_recordings);
+	layout->addWidget(m_listwidget_recordings, 1);
 	{
 		QHBoxLayout *layout2 = new QHBoxLayout();
 		layout->addLayout(layout2);
+		layout2->addWidget(m_button_play);
 		layout2->addWidget(button_open_folder);
 		layout2->addStretch();
 	}
-	layout->addStretch();
 	{
 		QHBoxLayout *layout2 = new QHBoxLayout();
 		layout->addLayout(layout2);
@@ -60,7 +75,42 @@ PageDone::PageDone(MainWindow* main_window)
 
 }
 
+void PageDone::AddRecording(const QString& file) {
+	if(file.isEmpty())
+		return;
+	if(m_recording_files.contains(file))
+		return;
+	m_recording_files.append(file);
+	QFileInfo fi(file);
+	QListWidgetItem *item = new QListWidgetItem(fi.fileName(), m_listwidget_recordings);
+	item->setData(Qt::UserRole, file);
+	item->setToolTip(file);
+	m_listwidget_recordings->setCurrentItem(item);
+}
+
+void PageDone::OnPlayRecording() {
+	QListWidgetItem *item = m_listwidget_recordings->currentItem();
+	if(item == NULL)
+		return;
+	QString file = item->data(Qt::UserRole).toString();
+	QDesktopServices::openUrl(QUrl::fromLocalFile(file));
+}
+
+void PageDone::OnRecordingDoubleClicked(QListWidgetItem* item) {
+	if(item == NULL)
+		return;
+	QString file = item->data(Qt::UserRole).toString();
+	QDesktopServices::openUrl(QUrl::fromLocalFile(file));
+}
+
 void PageDone::OnOpenFolder() {
-	QFileInfo fi(m_main_window->GetPageOutput()->GetFile());
+	QListWidgetItem *item = m_listwidget_recordings->currentItem();
+	QString file;
+	if(item != NULL) {
+		file = item->data(Qt::UserRole).toString();
+	} else {
+		file = m_main_window->GetPageOutput()->GetFile();
+	}
+	QFileInfo fi(file);
 	QDesktopServices::openUrl(QUrl::fromLocalFile(fi.absolutePath()));
 }

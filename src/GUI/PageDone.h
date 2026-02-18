@@ -20,6 +20,8 @@ along with SimpleScreenRecorder.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 #include "Global.h"
 
+#include <QListWidget>
+
 class MainWindow;
 
 class PageDone : public QWidget {
@@ -28,10 +30,18 @@ class PageDone : public QWidget {
 private:
 	MainWindow *m_main_window;
 
+	QListWidget *m_listwidget_recordings;
+	QStringList m_recording_files;
+	QPushButton *m_button_play;
+
 public:
 	PageDone(MainWindow* main_window);
 
+	void AddRecording(const QString& file);
+
 public slots:
 	void OnOpenFolder();
+	void OnPlayRecording();
+	void OnRecordingDoubleClicked(QListWidgetItem* item);
 
 };

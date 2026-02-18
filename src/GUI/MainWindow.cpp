@@ -225,6 +225,9 @@ void MainWindow::GoPageRecord() {
 	m_page_record->StartPage();
 }
 void MainWindow::GoPageDone() {
+	for(const QString& file : m_page_record->GetSavedFiles())
+		m_page_done->AddRecording(file);
+	m_page_record->ClearSavedFiles();
 	m_stacked_layout->setCurrentWidget(m_page_done);
 }
 

@@ -108,6 +108,8 @@ private:
 	QString m_file_protocol;
 	bool m_separate_files, m_add_timestamp;
 
+	QStringList m_saved_files;
+
 	std::unique_ptr<X11Input> m_x11_input;
 #if SSR_USE_OPENGL_RECORDING
 	std::unique_ptr<GLInjectInput> m_gl_inject_input;
@@ -206,6 +208,8 @@ private:
 	QString ReadStdinCommand();
 
 public:
+	inline QStringList GetSavedFiles() { return m_saved_files; }
+	inline void ClearSavedFiles() { m_saved_files.clear(); }
 	inline enum_schedule_time_zone GetScheduleTimeZone() { return m_schedule_time_zone; }
 	inline std::vector<ScheduleEntry> GetScheduleEntries() { return m_schedule_entries; }
 	inline bool IsHotkeyEnabled() { return m_checkbox_hotkey_enable->isChecked(); }

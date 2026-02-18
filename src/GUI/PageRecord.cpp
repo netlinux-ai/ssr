@@ -753,8 +753,11 @@ void PageRecord::StopPage(bool save) {
 	if(m_output_manager != NULL) {
 
 		// stop the output
-		if(save)
+		if(save) {
 			FinishOutput();
+			if(!m_output_settings.file.isEmpty() && m_file_protocol.isNull())
+				m_saved_files.append(m_output_settings.file);
+		}
 		m_output_manager.reset();
 
 		// delete the file if it isn't needed
@@ -901,6 +904,8 @@ void PageRecord::StopOutput(bool final) {
 
 		// stop the output
 		FinishOutput();
+		if(!m_output_settings.file.isEmpty() && m_file_protocol.isNull())
+			m_saved_files.append(m_output_settings.file);
 		m_output_manager.reset();
 
 		// change the file name
