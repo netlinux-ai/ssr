@@ -59,6 +59,20 @@ jobs:
             --install=no \
             --fstrans=yes
 
+      - name: Repack .deb for reprepro compatibility
+        run: |
+          cd build
+          DEB=$(ls simplescreenrecorder_*.deb)
+          mkdir repack && cd repack
+          ar x "../$DEB"
+          for f in *.zst; do
+            [ -f "$f" ] || continue
+            zstd -d "$f"
+            xz "${f%.zst}"
+            rm "$f"
+          done
+          ar rcs "../$DEB" debian-binary control.tar.xz data.tar.xz
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -71,3 +85,14 @@ jobs:
           files: build/simplescreenrecorder_*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify package repository
+        run: |
+          SIGNATURE=$(echo -n '{"repo":"netlinux-ai/ssr","tag":"${{ steps.version.outputs.tag }}"}' \
+            | openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET }}" -binary \
+            | xxd -p -c 256)
+          curl -sf -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Signature: sha256=${SIGNATURE}" \
+            -d '{"repo":"netlinux-ai/ssr","tag":"${{ steps.version.outputs.tag }}"}' \
+            https://packages.netlinux.co.uk/webhook/update-repo
