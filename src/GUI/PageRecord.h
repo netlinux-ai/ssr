@@ -243,6 +243,7 @@ public slots:
 	void OnUpdateHotkeyFields();
 	void OnUpdateHotkey();
 	void OnSeparateFilesChanged(bool checked);
+	void OnGoSavedRecordings();
 #if SSR_USE_ALSA
 	void OnUpdateSoundNotifications();
 #endif

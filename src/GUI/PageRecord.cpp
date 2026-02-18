@@ -400,7 +400,7 @@ PageRecord::PageRecord(MainWindow* main_window)
 
 	connect(button_cancel, SIGNAL(clicked()), this, SLOT(OnRecordCancel()));
 	connect(button_save, SIGNAL(clicked()), this, SLOT(OnRecordSave()));
-	connect(button_saved_recordings, SIGNAL(clicked()), m_main_window, SLOT(GoPageDone()));
+	connect(button_saved_recordings, SIGNAL(clicked()), this, SLOT(OnGoSavedRecordings()));
 	if(m_systray_icon != NULL)
 		connect(m_systray_icon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), m_main_window, SLOT(OnSysTrayActivated(QSystemTrayIcon::ActivationReason)));
 
@@ -1346,6 +1346,26 @@ void PageRecord::OnRecordCancel(bool confirm) {
 	}
 	StopPage(false);
 	m_main_window->GoPageOutput();
+}
+
+void PageRecord::OnGoSavedRecordings() {
+	if(m_main_window->IsBusy())
+		return;
+	if(m_wait_saving)
+		return;
+	if(m_page_started && m_output_manager != NULL) {
+		enum_button answer = MessageBox(QMessageBox::Warning, this, MainWindow::WINDOW_CAPTION,
+										tr("You have an unsaved recording. What would you like to do?"),
+										BUTTON_SAVE | BUTTON_DISCARD | BUTTON_CANCEL, BUTTON_SAVE);
+		if(answer == BUTTON_SAVE) {
+			StopPage(true);
+		} else if(answer == BUTTON_DISCARD) {
+			StopPage(false);
+		} else {
+			return;
+		}
+	}
+	m_main_window->GoPageDone();
 }
 
 void PageRecord::OnRecordSave(bool confirm) {
