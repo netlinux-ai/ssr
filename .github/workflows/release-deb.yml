@@ -1,0 +1,73 @@
+name: Build .deb package
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config \
+            qtbase5-dev libqt5x11extras5-dev qttools5-dev \
+            libavformat-dev libavcodec-dev libavutil-dev libswscale-dev \
+            libx11-dev libxext-dev libxfixes-dev libxi-dev libxinerama-dev \
+            libasound2-dev libpulse-dev libjack-jackd2-dev \
+            libpipewire-0.3-dev libspa-0.2-dev \
+            libv4l-dev
+
+      - name: Configure
+        run: |
+          mkdir -p build && cd build
+          cmake .. \
+            -DWITH_QT5=ON \
+            -DWITH_GLINJECT=OFF \
+            -DWITH_OPENGL_RECORDING=ON \
+            -DWITH_V4L2=ON \
+            -DWITH_PIPEWIRE=ON \
+            -DWITH_ALSA=ON \
+            -DWITH_PULSEAUDIO=ON \
+            -DWITH_JACK=ON
+
+      - name: Build
+        run: cd build && make -j$(nproc)
+
+      - name: Determine version
+        id: version
+        run: |
+          base=$(grep 'project(simplescreenrecorder' CMakeLists.txt | sed 's/.*VERSION \([0-9.]*\).*/\1/')
+          rev=${{ github.run_number }}
+          echo "version=${base}+git-${rev}netlinux1" >> "$GITHUB_OUTPUT"
+          echo "tag=v${base}+git-${rev}netlinux1" >> "$GITHUB_OUTPUT"
+
+      - name: Package with checkinstall
+        run: |
+          sudo apt-get install -y checkinstall
+          cd build
+          sudo checkinstall --default \
+            --pkgname=simplescreenrecorder \
+            --pkgversion="${{ steps.version.outputs.version }}" \
+            --maintainer="graham@netlinux.co.uk" \
+            --pakdir=. \
+            --install=no \
+            --fstrans=yes
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: simplescreenrecorder ${{ steps.version.outputs.version }}
+          body: |
+            Automated build from commit ${{ github.sha }}
+
+            Install: `sudo dpkg -i simplescreenrecorder_*.deb`
+          files: build/simplescreenrecorder_*.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
