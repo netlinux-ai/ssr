@@ -35,8 +35,11 @@ PageDone::PageDone(MainWindow* main_window)
 	QPushButton *button_open_folder = new QPushButton(g_icon_folder_open, tr("Open folder"), this);
 	connect(button_open_folder, SIGNAL(clicked()), this, SLOT(OnOpenFolder()));
 
-	QPushButton *button_back = new QPushButton(g_icon_go_home, tr("Back to the start screen"), this);
-	connect(button_back, SIGNAL(clicked()), m_main_window, SLOT(GoPageStart()));
+	QPushButton *button_back_start = new QPushButton(g_icon_go_home, tr("Back to the start screen"), this);
+	connect(button_back_start, SIGNAL(clicked()), m_main_window, SLOT(GoPageStart()));
+
+	QPushButton *button_back_record = new QPushButton(g_icon_go_previous, tr("Back to recording"), this);
+	connect(button_back_record, SIGNAL(clicked()), m_main_window, SLOT(GoPageRecord()));
 
 	QVBoxLayout *layout = new QVBoxLayout(this);
 	layout->addWidget(label_done);
@@ -47,7 +50,13 @@ PageDone::PageDone(MainWindow* main_window)
 		layout2->addStretch();
 	}
 	layout->addStretch();
-	layout->addWidget(button_back);
+	{
+		QHBoxLayout *layout2 = new QHBoxLayout();
+		layout->addLayout(layout2);
+		layout2->addWidget(button_back_start);
+		layout2->addStretch();
+		layout2->addWidget(button_back_record);
+	}
 
 }
 
