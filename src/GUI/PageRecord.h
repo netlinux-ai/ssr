@@ -142,6 +142,7 @@ private:
 	QPushButton *m_pushbutton_schedule_activate, *m_pushbutton_schedule_edit;
 
 	QCheckBox *m_checkbox_hotkey_enable;
+	QCheckBox *m_checkbox_separate_files;
 #if SSR_USE_ALSA
 	QCheckBox *m_checkbox_sound_notifications_enable;
 #endif
@@ -241,6 +242,7 @@ public:
 public slots:
 	void OnUpdateHotkeyFields();
 	void OnUpdateHotkey();
+	void OnSeparateFilesChanged(bool checked);
 #if SSR_USE_ALSA
 	void OnUpdateSoundNotifications();
 #endif

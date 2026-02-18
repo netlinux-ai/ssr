@@ -193,6 +193,10 @@ PageRecord::PageRecord(MainWindow* main_window)
 		m_checkbox_sound_notifications_enable = new QCheckBox(tr("Enable sound notifications"), groupbox_recording);
 		m_checkbox_sound_notifications_enable->setToolTip(tr("When enabled, a sound will be played when the recording is started or paused, or when an error occurs."));
 #endif
+		m_checkbox_separate_files = new QCheckBox(tr("Separate file per segment"), groupbox_recording);
+		m_checkbox_separate_files->setToolTip(tr("When enabled, each recording segment (between pauses) is saved as a separate file.\n"
+												 "Can only be changed while not actively recording."));
+
 		QLabel *label_hotkey = new QLabel(tr("Hotkey:"), groupbox_recording);
 		m_checkbox_hotkey_ctrl = new QCheckBox(tr("Ctrl +"), groupbox_recording);
 		m_checkbox_hotkey_shift = new QCheckBox(tr("Shift +"), groupbox_recording);
@@ -214,6 +218,7 @@ PageRecord::PageRecord(MainWindow* main_window)
 #if SSR_USE_ALSA
 		connect(m_checkbox_sound_notifications_enable, SIGNAL(clicked()), this, SLOT(OnUpdateSoundNotifications()));
 #endif
+		connect(m_checkbox_separate_files, SIGNAL(clicked(bool)), this, SLOT(OnSeparateFilesChanged(bool)));
 		connect(m_checkbox_hotkey_ctrl, SIGNAL(clicked()), this, SLOT(OnUpdateHotkey()));
 		connect(m_checkbox_hotkey_shift, SIGNAL(clicked()), this, SLOT(OnUpdateHotkey()));
 		connect(m_checkbox_hotkey_alt, SIGNAL(clicked()), this, SLOT(OnUpdateHotkey()));
@@ -236,6 +241,7 @@ PageRecord::PageRecord(MainWindow* main_window)
 #if SSR_USE_ALSA
 			layout2->addWidget(m_checkbox_sound_notifications_enable);
 #endif
+			layout2->addWidget(m_checkbox_separate_files);
 		}
 		{
 			QHBoxLayout *layout2 = new QHBoxLayout();
@@ -629,6 +635,7 @@ void PageRecord::StartPage() {
 	m_file_protocol = page_output->GetFileProtocol();
 	m_separate_files = page_output->GetSeparateFiles();
 	m_add_timestamp = page_output->GetAddTimestamp();
+	m_checkbox_separate_files->setChecked(m_separate_files);
 
 	// get the output settings
 	m_output_settings.file = QString(); // will be set later
@@ -1177,9 +1184,27 @@ void PageRecord::UpdateRecordButton() {
 	if(m_output_started) {
 		m_pushbutton_record->setIcon(g_icon_pause);
 		m_pushbutton_record->setText(tr("Pause recording"));
+		m_checkbox_separate_files->setEnabled(false);
 	} else {
 		m_pushbutton_record->setIcon(g_icon_record);
 		m_pushbutton_record->setText(tr("Start recording"));
+		m_checkbox_separate_files->setEnabled(true);
+	}
+}
+
+void PageRecord::OnSeparateFilesChanged(bool checked) {
+	m_separate_files = checked;
+
+	// if checked while paused and there's an active recording, finalize the current segment
+	if(checked && m_page_started && !m_output_started && m_output_manager != NULL) {
+		FinishOutput();
+		if(!m_output_settings.file.isEmpty() && m_file_protocol.isNull())
+			m_saved_files.append(m_output_settings.file);
+		m_output_manager.reset();
+		m_output_settings.file = QString();
+		m_output_settings.video_width = 0;
+		m_output_settings.video_height = 0;
+		Logger::LogInfo("[PageRecord::OnSeparateFilesChanged] " + tr("Segment saved, next recording will start a new file."));
 	}
 }
 
