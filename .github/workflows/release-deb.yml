@@ -72,6 +72,7 @@ jobs:
             xz "${f%.zst}"
             rm "$f"
           done
+          rm "../$DEB"
           ar rcs "../$DEB" debian-binary control.tar.xz data.tar.xz
 
       - name: Create GitHub Release
@@ -89,6 +90,7 @@ jobs:
 
       - name: Notify package repository
         run: |
+          sleep 5
           SIGNATURE=$(echo -n '{"repo":"netlinux-ai/ssr","tag":"${{ steps.version.outputs.tag }}"}' \
             | openssl dgst -sha256 -hmac "${{ secrets.WEBHOOK_SECRET }}" -binary \
             | xxd -p -c 256)
