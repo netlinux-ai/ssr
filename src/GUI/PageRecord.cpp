@@ -371,6 +371,7 @@ PageRecord::PageRecord(MainWindow* main_window)
 
 	QPushButton *button_cancel = new QPushButton(g_icon_cancel, tr("Cancel recording"), this);
 	QPushButton *button_save = new QPushButton(g_icon_save, tr("Save recording"), this);
+	QPushButton *button_saved_recordings = new QPushButton(g_icon_go_next, tr("Saved recordings"), this);
 
 	if(CommandLineOptions::GetSysTray()) {
 		m_systray_icon = new QSystemTrayIcon(g_icon_ssr_idle, m_main_window);
@@ -393,6 +394,7 @@ PageRecord::PageRecord(MainWindow* main_window)
 
 	connect(button_cancel, SIGNAL(clicked()), this, SLOT(OnRecordCancel()));
 	connect(button_save, SIGNAL(clicked()), this, SLOT(OnRecordSave()));
+	connect(button_saved_recordings, SIGNAL(clicked()), m_main_window, SLOT(GoPageDone()));
 	if(m_systray_icon != NULL)
 		connect(m_systray_icon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), m_main_window, SLOT(OnSysTrayActivated(QSystemTrayIcon::ActivationReason)));
 
@@ -404,6 +406,8 @@ PageRecord::PageRecord(MainWindow* main_window)
 		layout->addLayout(layout2);
 		layout2->addWidget(button_cancel);
 		layout2->addWidget(button_save);
+		layout2->addStretch();
+		layout2->addWidget(button_saved_recordings);
 	}
 
 	m_stdin_notifier = new QSocketNotifier(0, QSocketNotifier::Read, this);
